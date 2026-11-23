@@ -8,6 +8,7 @@ main { padding: 24px 36px 60px; max-width: 1500px; margin: 0 auto; }
 h2 { font-weight: 500; font-size: 22px; }
 .hint { color: #555; font-size: 14px; margin: 6px 0; }
 .small { font-size: 13px; font-weight: 400; }
+.switch-btn { margin-left: 8px; vertical-align: middle; }
 .center { text-align: center; }
 .event-name { font-size: 28px; padding: 6px 14px; width: min(460px, 100%); text-align: center; border: 1px solid #888; }
 button, select, input { font-size: 15px; padding: 4px 8px; }

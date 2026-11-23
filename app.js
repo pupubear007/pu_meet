@@ -337,16 +337,35 @@ async function renderEvent(id) {
 
   function signIn(name) {
     name = name.trim(); if (!name) return;
+    const existing = people.find((p) => personKey(p.name) === personKey(name));
+    if (existing) name = existing.name; // keep the original spelling of an existing name
     me = name;
     localStorage.setItem('pu_meet_name:' + id, name);
-    const existing = people.find((p) => personKey(p.name) === personKey(name));
     mySlots = new Set(existing?.slots || []);
     signForm.remove();
-    meLabel.textContent = `${name}'s Availability`;
-    meLabel.append(' ', h('a', { href: 'javascript:void 0', class: 'small', onclick: () => location.reload() }, '(switch)'));
+    meLabel.textContent = `${name}'s Availability `;
+    meLabel.append(h('button', { class: 'small switch-btn', type: 'button', onclick: signOut }, 'Switch person / sign out'));
     myPanel.querySelector('.grid-wrap').classList.remove('hidden');
-    myPanel.insertBefore(h('div', { class: 'hint' }, 'Click and drag to mark when you are available. Saves automatically.'), myPanel.querySelector('.grid-wrap'));
+    myPanel.insertBefore(h('div', { class: 'hint edit-hint' }, 'Click and drag to mark when you are available. Saves automatically.'), myPanel.querySelector('.grid-wrap'));
     paintMine(); paintGroup();
+  }
+
+  async function signOut() {
+    // finish any pending save for the current person first
+    if (saveTimer) {
+      clearTimeout(saveTimer); saveTimer = null;
+      try { await store.savePerson(id, { name: me, slots: [...mySlots], updated: Date.now() }); } catch (e) { console.error(e); }
+    }
+    localStorage.removeItem('pu_meet_name:' + id);
+    me = null; mySlots = new Set(); drag = null;
+    meLabel.textContent = 'Your Availability';
+    myPanel.querySelector('.edit-hint')?.remove();
+    myPanel.querySelector('.grid-wrap').classList.add('hidden');
+    saveState.textContent = '';
+    nameIn.value = '';
+    meLabel.after(signForm);
+    nameIn.focus();
+    paintGroup();
   }
 
   function paintMine() {
