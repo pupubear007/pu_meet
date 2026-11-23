@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Anyone with the link can read an event; events can be created but never changed or deleted.
+    match /events/{eventId} {
+      allow read: if true;
+      allow create: if request.resource.data.name is string
+                    && request.resource.data.name.size() <= 150
+                    && request.resource.data.mode in ['dates', 'weekdays']
+                    && request.resource.data.dates is list
+                    && request.resource.data.weekdays is list;
+      allow update, delete: if false;
+
+      // Each person's availability. Anyone can add or edit (same as when2meet without passwords).
+      match /people/{personId} {
+        allow read: if true;
+        allow create, update: if request.resource.data.name is string
+                              && request.resource.data.name.size() > 0
+                              && request.resource.data.name.size() <= 60
+                              && request.resource.data.slots is list;
+        allow delete: if false;
+      }
+    }
+  }
+}
