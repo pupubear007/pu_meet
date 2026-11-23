@@ -6,7 +6,7 @@
 //   true  → visitors' browsers quietly delete expired events (at most once a day per browser, up to 10 at a time).
 // Every new event always records its delete date (expireAt), so you can switch this on later
 // and older events made after Nov 23, 2026 will still be cleaned up.
-export const AUTO_DELETE = false;
+export const AUTO_DELETE = true;
 
 // How many months after the event's last date it is kept
 // ("days of the week" events: months after the latest response).
