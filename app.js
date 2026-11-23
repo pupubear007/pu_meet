@@ -40,7 +40,9 @@ let cleanup = null;
 function route() {
   if (cleanup) { cleanup(); cleanup = null; }
   const m = location.hash.match(/^#\/e\/([\w-]+)/);
-  if (m) renderEvent(m[1]); else renderCreate();
+  if (m) renderEvent(m[1]);
+  else if (location.hash.startsWith('#/policy')) renderPolicy();
+  else renderCreate();
 }
 window.addEventListener('hashchange', route);
 route();
@@ -444,4 +446,51 @@ async function renderEvent(id) {
     window.removeEventListener('pointerup', onUp);
   };
   paintGroup();
+}
+
+// ================= DATA POLICY PAGE =================
+function renderPolicy() {
+  const app = $('#app');
+  app.innerHTML = `
+  <article class="policy">
+    <h1>Data Policy</h1>
+    <p class="hint">Last updated: November 23, 2026</p>
+    <p>pu_meet is a free, personal tool for finding a time to meet. It is run by one person (the site owner),
+    not a company, and there are no accounts, ads or tracking.</p>
+
+    <h2>What is stored</h2>
+    <ul>
+      <li><b>Events:</b> the event name, the dates or days of the week, the time range, and the time zone.</li>
+      <li><b>Responses:</b> the name you type and the time slots you mark as available.</li>
+      <li>Nothing else: no email, password, location or contact list. Your browser remembers the name you
+      last used for each event (in its own local storage) so you don't have to retype it.</li>
+    </ul>
+    <p>Data is stored in Google Firebase (Cloud Firestore) and the website is hosted on GitHub Pages.
+    Those services may keep standard technical logs (such as IP addresses) under their own privacy policies.</p>
+
+    <h2>Who can see it</h2>
+    <ul>
+      <li><b>Anyone who has an event's link</b> can see the event, everyone's names and availability,
+      and can add or change any response. There are no passwords.</li>
+      <li>Event links are random and not listed anywhere, but please treat them as semi-public.</li>
+      <li>Please <b>do not put private or sensitive information</b> in event names or response names.
+      A first name or nickname is enough.</li>
+    </ul>
+
+    <h2>How long it is kept</h2>
+    <ul>
+      <li>Events and all their responses are <b>deleted by the site owner about 2 months after the event's last date</b>.</li>
+      <li>"Days of the week" events have no end date; they are deleted about 2 months after the last response.</li>
+      <li>Deletion is done by hand, so it may happen a little later than 2 months. Once deleted, data cannot be recovered.</li>
+    </ul>
+
+    <h2>Deleting or changing your data sooner</h2>
+    <p>You can change or clear your own availability at any time by signing in with the same name.
+    To have a whole event or your name removed sooner, ask the site owner (the person who shared this site with you),
+    or open an issue at <a href="https://github.com/pupubear007/pu_meet/issues" target="_blank" rel="noopener">github.com/pupubear007/pu_meet/issues</a>.</p>
+
+    <h2>No guarantees</h2>
+    <p>This is a hobby project offered as-is. Please don't rely on it as the only record of important plans.</p>
+    <p><a href="#/">← Plan a new event</a></p>
+  </article>`;
 }

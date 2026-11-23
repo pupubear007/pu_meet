@@ -59,10 +59,24 @@ saving only in your own browser.
    These web keys are meant to be public; the security rules are what protect the data.
 2. **GitHub Pages:** repo **Settings → Pages** → Source **Deploy from a branch** → Branch `main`, folder `/ (root)` → **Save**.
 
+## Data policy
+
+The same text is shown on the site at **Data Policy** (`#/policy`).
+
+- **Stored:** event name, dates or days of the week, time range, time zone; for each response, the name typed and
+  the time slots marked. No email, password, location or accounts. The browser remembers your last-used name per event.
+- **Where:** Google Firebase (Cloud Firestore); website on GitHub Pages. Those services may keep standard technical logs.
+- **Who can see it:** anyone with an event's link can see all names and availability and edit any response.
+  Don't put private or sensitive information in names.
+- **How long:** events and their responses are deleted by the site owner, by hand, about **2 months after the event's last date**
+  ("days of the week" events: about 2 months after the last response). Deleted data cannot be recovered.
+- **Earlier removal:** ask the site owner or open an issue on this repo.
+- Hobby project, offered as-is.
+
 ## Notes and limits
 
 - Times are shown in the event's time zone. People whose computer is set to another time zone see a reminder to convert.
-- Like when2meet without passwords, anyone with the link can edit any name's row. Events and rows cannot be deleted from the site.
+- Like when2meet without passwords, anyone with the link can edit any name's row. Events and rows cannot be deleted from the site; the owner deletes them in the Firebase console (Firestore → Data → the event → ⋮ → Delete document, including nested data).
 - Firestore's free plan allows 50,000 reads and 20,000 writes per day, plenty for a lab or class.
 - Event links look like `https://pupubear007.github.io/pu_meet/#/e/<id>`, where the id is a random 10-character string.
 - After an update is pushed, GitHub Pages takes about a minute; press Cmd + Shift + R to reload without the cached copy.
