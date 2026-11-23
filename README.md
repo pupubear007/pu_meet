@@ -34,6 +34,7 @@ Hosting: static files on **GitHub Pages**. Data: **Firebase Firestore** (Google'
 | `app.js` | Create-event page and event page (grids, dragging, best times, sign in/out) |
 | `storage.js` | Saves and loads data: Firebase if configured, otherwise the browser's localStorage ("demo mode") |
 | `firebase-config.js` | Firebase web keys for project `pu-meet` |
+| `settings.js` | Owner settings: auto-delete switch and how many months to keep events |
 | `firestore.rules` | Database security rules (paste into Firebase → Firestore → Rules) |
 | `style.css` | Styling |
 | `.nojekyll` | Tells GitHub Pages to serve the files as-is |
@@ -59,6 +60,23 @@ saving only in your own browser.
    These web keys are meant to be public; the security rules are what protect the data.
 2. **GitHub Pages:** repo **Settings → Pages** → Source **Deploy from a branch** → Branch `main`, folder `/ (root)` → **Save**.
 
+## Auto-delete switch (`settings.js`)
+
+```js
+export const AUTO_DELETE = false;  // false = you delete events by hand; true = the site deletes expired events
+export const KEEP_MONTHS = 2;      // months kept after the event's last date
+```
+
+- Every new event stores a delete date (`expireAt`) = last date + 2 months
+  ("days of the week" events: 2 months after the latest response). The event page shows it.
+- **To switch on:** on GitHub open `settings.js` → pencil icon → change `false` to `true` → **Commit changes**.
+  Then in Firebase → **Firestore → Rules**, paste the current `firestore.rules` and **Publish**
+  (the rules allow the website to delete an event only after its delete date). The Data Policy page and footer update their wording automatically.
+- **How it works (free):** about once a day per visitor's browser, the site deletes up to 10 expired events and their responses.
+  So deletion happens when people visit the site, possibly a little after the delete date.
+- Firestore's built-in auto-delete ("TTL policy") would do this without visitors, but it requires the paid (Blaze) billing plan.
+- Events created before Nov 23, 2026 have no delete date: delete those by hand in the Firebase console.
+
 ## Data policy
 
 The same text is shown on the site at **Data Policy** (`#/policy`).
@@ -68,7 +86,7 @@ The same text is shown on the site at **Data Policy** (`#/policy`).
 - **Where:** Google Firebase (Cloud Firestore); website on GitHub Pages. Those services may keep standard technical logs.
 - **Who can see it:** anyone with an event's link can see all names and availability and edit any response.
   Don't put private or sensitive information in names.
-- **How long:** events and their responses are deleted by the site owner, by hand, about **2 months after the event's last date**
+- **How long:** events and their responses are deleted (by hand, or automatically when the switch is on) about **2 months after the event's last date**
   ("days of the week" events: about 2 months after the last response). Deleted data cannot be recovered.
 - **Earlier removal:** ask the site owner or open an issue on this repo.
 - Hobby project, offered as-is.

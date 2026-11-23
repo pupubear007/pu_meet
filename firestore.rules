@@ -1,24 +1,42 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Anyone with the link can read an event; events can be created but never changed or deleted.
+
+    // True once an event's delete date (expireAt) has passed.
+    function expired(data) {
+      return data != null && data.keys().hasAny(['expireAt']) && data.expireAt < request.time;
+    }
+
     match /events/{eventId} {
       allow read: if true;
+
       allow create: if request.resource.data.name is string
                     && request.resource.data.name.size() <= 150
                     && request.resource.data.mode in ['dates', 'weekdays']
                     && request.resource.data.dates is list
-                    && request.resource.data.weekdays is list;
-      allow update, delete: if false;
+                    && request.resource.data.weekdays is list
+                    && request.resource.data.expireAt is timestamp
+                    && request.resource.data.expireAt > request.time;
 
-      // Each person's availability. Anyone can add or edit (same as when2meet without passwords).
+      // "Days of the week" events: only the delete date may change, pushed at most ~2 months ahead.
+      allow update: if resource.data.mode == 'weekdays'
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['expireAt'])
+                    && request.resource.data.expireAt is timestamp
+                    && request.resource.data.expireAt > request.time
+                    && request.resource.data.expireAt < request.time + duration.value(63, 'd');
+
+      // Auto-delete: an event can be deleted from the website only after its delete date.
+      // (You can always delete anything yourself in the Firebase console.)
+      allow delete: if expired(resource.data);
+
       match /people/{personId} {
         allow read: if true;
         allow create, update: if request.resource.data.name is string
                               && request.resource.data.name.size() > 0
                               && request.resource.data.name.size() <= 60
                               && request.resource.data.slots is list;
-        allow delete: if false;
+        // Responses can be deleted from the website only after their event's delete date.
+        allow delete: if expired(get(/databases/$(database)/documents/events/$(eventId)).data);
       }
     }
   }

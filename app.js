@@ -1,4 +1,32 @@
-import { store, personKey } from './storage.js';
+import { store, personKey, toDate } from './storage.js';
+import { AUTO_DELETE, KEEP_MONTHS } from './settings.js';
+
+// ---------- delete dates ----------
+// Specific-dates events: KEEP_MONTHS after the LAST date of the event.
+// Days-of-the-week events: KEEP_MONTHS after the latest response.
+const expiryForDates = (lastYmd) => {
+  const [y, m, d] = lastYmd.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1 + KEEP_MONTHS, d + 1, 12)); // end of last day + buffer for time zones
+};
+const expiryFromNow = () => { const t = new Date(); t.setUTCMonth(t.getUTCMonth() + KEEP_MONTHS); return t; };
+const fmtDay = (d) => d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+const keepText = `${KEEP_MONTHS} month${KEEP_MONTHS === 1 ? '' : 's'}`;
+
+// Auto-delete sweep (only when switched on in settings.js): at most once a day per browser.
+if (AUTO_DELETE) (async () => {
+  try {
+    const last = +localStorage.getItem('pu_meet_last_cleanup') || 0;
+    if (Date.now() - last < 864e5) return;
+    localStorage.setItem('pu_meet_last_cleanup', Date.now());
+    const n = await store.deleteExpired(10);
+    if (n) console.info(`pu_meet: deleted ${n} expired event(s)`);
+  } catch (e) { console.warn('pu_meet auto-delete skipped:', e.message); }
+})();
+
+// footer notice follows the switch
+document.querySelector('.footer')?.replaceChildren(
+  `Anyone with an event link can see and edit it. Events are deleted ${AUTO_DELETE ? 'automatically' : ''} about ${keepText} after they end. `.replace('  ', ' '),
+  Object.assign(document.createElement('a'), { href: '#/policy', textContent: 'Data Policy' }));
 
 // ---------- small helpers ----------
 const $ = (s, r = document) => r.querySelector(s);
@@ -187,6 +215,7 @@ function renderCreate() {
       dates: mode === 'dates' ? [...selected].sort() : [],
       weekdays: mode === 'weekdays' ? [...weekdays].sort() : [],
     };
+    ev.expireAt = mode === 'dates' ? expiryForDates(ev.dates[ev.dates.length - 1]) : expiryFromNow();
     createBtn.disabled = true; createBtn.textContent = 'Creating…';
     try { await store.createEvent(ev); location.hash = '#/e/' + ev.id; }
     catch (e) { err.textContent = 'Could not create event: ' + e.message; createBtn.disabled = false; createBtn.textContent = 'Create Event'; }
@@ -234,6 +263,16 @@ async function renderEvent(id) {
   let saveTimer = null;
   const savedName = localStorage.getItem('pu_meet_name:' + id);
 
+  // --- delete-date note ---
+  const expireNote = h('div', { class: 'hint expire-note' });
+  const showExpiry = () => {
+    const d = toDate(ev.expireAt);
+    if (!d) { expireNote.textContent = ''; return; }
+    expireNote.textContent = `This event and all responses will be deleted ${AUTO_DELETE ? 'automatically ' : ''}on or after ${fmtDay(d)}` +
+      (ev.mode === 'weekdays' ? ` (${keepText} after the latest response).` : ` (${keepText} after the last date).`);
+  };
+  showExpiry();
+
   // --- header ---
   const link = location.href;
   const copyBtn = h('button', { onclick: async () => {
@@ -266,6 +305,7 @@ async function renderEvent(id) {
     h('div', { class: 'event-head' },
       h('h1', {}, ev.name),
       h('div', { class: 'share' }, 'Share this link: ', h('code', {}, link), ' ', copyBtn),
+      expireNote,
       h('div', { class: 'hint' }, `Times shown in ${ev.tz}.`,
         viewerTz !== ev.tz ? h('b', {}, ` (Your computer is set to ${viewerTz} — remember to convert.)`) : '')),
     h('div', { class: 'event-cols' }, myPanel, groupPanel),
@@ -333,6 +373,11 @@ async function renderEvent(id) {
       try {
         await store.savePerson(id, { name: me, slots: [...mySlots], updated: Date.now() });
         saveState.textContent = 'Saved ✓';
+        const cur = toDate(ev.expireAt);
+        if (ev.mode === 'weekdays' && cur && expiryFromNow() - cur > 864e5) { // refresh at most once a day
+          ev.expireAt = expiryFromNow();
+          store.extendExpiry(id, ev.expireAt).then(showExpiry).catch((e) => console.warn(e.message));
+        }
       } catch (e) { saveState.textContent = 'Save failed: ' + e.message; }
     }, 400);
   }
@@ -479,9 +524,13 @@ function renderPolicy() {
 
     <h2>How long it is kept</h2>
     <ul>
-      <li>Events and all their responses are <b>deleted by the site owner about 2 months after the event's last date</b>.</li>
-      <li>"Days of the week" events have no end date; they are deleted about 2 months after the last response.</li>
-      <li>Deletion is done by hand, so it may happen a little later than 2 months. Once deleted, data cannot be recovered.</li>
+      <li>Events and all their responses are <b>deleted ${AUTO_DELETE ? 'automatically' : 'by the site owner'}
+      about ${keepText} after the event's last date</b>. Each event page shows its delete date.</li>
+      <li>"Days of the week" events have no end date; they are deleted about ${keepText} after the latest response.</li>
+      <li>${AUTO_DELETE
+        ? 'Automatic deletion runs when people visit the site, so it may happen a little after the delete date.'
+        : 'Deletion is done by hand, so it may happen a little after the delete date.'}
+      Once deleted, data cannot be recovered.</li>
     </ul>
 
     <h2>Deleting or changing your data sooner</h2>
