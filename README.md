@@ -1,63 +1,78 @@
 # pu_meet
 
-A when2meet-style scheduler with **no date limit**: pick any number of dates, any distance ahead
-(use ‹ › / « » to move through months and years, or "Add range" for long spans), or survey by days of the week.
+**Live site: https://pupubear007.github.io/pu_meet/**
 
-- Static site → hosted free on **GitHub Pages** (`https://<your-username>.github.io/pu_meet/`)
-- Responses stored in **Firebase Firestore** (Google's free database; the "Spark" plan costs nothing)
-- Live updates: when someone fills in the grid, everyone's group view updates without reloading
-- Drag a rectangle to mark availability (like when2meet), hover the group grid to see who is free,
-  and a "Best times" list ranks the time blocks most people can make
+A when2meet-style group scheduler with **no date limit**. Create an event, send the link,
+everyone paints the times they are free, and the group grid shows when the most people can meet.
 
-Without Firebase set up, it runs in **demo mode** (saved only in your own browser) — good for trying it out.
+- **Any dates, any distance ahead:** move through months (‹ ›) and years (« »), click or drag days,
+  or use **Add range** (with an optional "skip weekends") for long spans. Or survey by **days of the week**.
+- **Drag to mark availability:** drag a rectangle on your grid, like when2meet. Saves automatically.
+- **Live group view:** the group grid updates as people respond, without reloading.
+  Darker green = more people; outlined cells = everyone is free.
+- **Hover a group cell** to see who is available and who is not.
+- **Best times** list ranks the time blocks most people can make.
+- **Switch person / sign out** button to enter availability for someone else on the same computer.
+- Grids for many dates scroll sideways together; gaps mark skipped days.
+
+Hosting: static files on **GitHub Pages**. Data: **Firebase Firestore** (Google's free database, "Spark" plan, $0/month).
+
+## How to use
+
+1. Open the live site, type an event name, and pick dates (or days of the week).
+2. Set **No earlier than / No later than**, the **time slot length** (15, 30 or 60 minutes) and the **time zone**.
+3. Click **Create Event**, then **Copy link** and send it to people.
+4. Each person types their name, clicks **Sign in**, and drags over the times they are free.
+   Signing in again later with the same name (capital letters don't matter) loads and edits that person's row.
+5. Use **Switch person / sign out** to fill in for someone else.
 
 ## Files
 
 | File | What it does |
 |---|---|
 | `index.html` | Page shell |
-| `app.js` | Create-event page and event page (grids, dragging, best times) |
-| `storage.js` | Saves/loads data: Firebase if configured, otherwise browser localStorage |
-| `firebase-config.js` | **You paste your Firebase keys here** |
-| `firestore.rules` | Database security rules to paste into Firebase |
+| `app.js` | Create-event page and event page (grids, dragging, best times, sign in/out) |
+| `storage.js` | Saves and loads data: Firebase if configured, otherwise the browser's localStorage ("demo mode") |
+| `firebase-config.js` | Firebase web keys for project `pu-meet` |
+| `firestore.rules` | Database security rules (paste into Firebase → Firestore → Rules) |
 | `style.css` | Styling |
-| `.nojekyll` | Tells GitHub Pages to serve files as-is |
+| `.nojekyll` | Tells GitHub Pages to serve the files as-is |
 
-## 1. Try it locally
+## Run locally
 
 ```bash
+git clone https://github.com/pupubear007/pu_meet ~/pu_meet
 cd ~/pu_meet
 python3 -m http.server 8000
 # open http://localhost:8000
 ```
 
-## 2. Set up Firebase (free, ~5 minutes)
+Running locally still uses the real Firebase database. To try it without touching real data,
+empty the `apiKey` in `firebase-config.js`: the site then runs in **demo mode** (yellow banner),
+saving only in your own browser.
 
-1. Go to <https://console.firebase.google.com> → **Add project** → name it `pu-meet` (Google Analytics can be turned off).
-2. Left menu → **Build → Firestore Database** → **Create database** → pick a location (e.g. `us-central`) → start in **production mode**.
-3. In Firestore, open the **Rules** tab, replace everything with the contents of `firestore.rules`, click **Publish**.
-4. Project Overview (gear icon) → **Project settings** → **Your apps** → click the web icon `</>` → register an app named `pu_meet` (no hosting needed).
-5. Copy the `firebaseConfig` values it shows into `firebase-config.js`.
+## Setup (already done for this repo — kept for reference or for a fork)
 
-The Firebase web keys are meant to be public (they only identify the project); the security rules are what protect the data.
-
-## 3. Publish on GitHub Pages
-
-```bash
-cd ~/pu_meet
-git init
-git add .
-git commit -m "pu_meet: when2meet-style scheduler"
-gh repo create pupubear007/pu_meet --public --source=. --push
-# (or create the repo on github.com and: git remote add origin ... && git push -u origin main)
-```
-
-Then on GitHub: repo → **Settings → Pages** → Source: **Deploy from a branch** → Branch: `main`, folder `/ (root)` → Save.
-After ~1 minute the site is at `https://pupubear007.github.io/pu_meet/`.
+1. **Firebase:** at <https://console.firebase.google.com> create a project → **Databases & Storage → Firestore → Create database**
+   (production mode) → **Rules** tab: paste `firestore.rules` and **Publish** →
+   **Settings → General → Your apps → `</>` (Web)** → register an app and copy the `firebaseConfig` values into `firebase-config.js`.
+   These web keys are meant to be public; the security rules are what protect the data.
+2. **GitHub Pages:** repo **Settings → Pages** → Source **Deploy from a branch** → Branch `main`, folder `/ (root)` → **Save**.
 
 ## Notes and limits
 
-- Times are shown in the event's time zone (chosen when creating); people in other time zones see a reminder to convert.
-- Like when2meet without passwords, anyone with the link can edit any name's row.
-- Firestore's free plan allows 50,000 reads and 20,000 writes per day — plenty for a lab or class.
-- Each event's link is `.../#/e/<id>`; ids are random 10-character strings.
+- Times are shown in the event's time zone. People whose computer is set to another time zone see a reminder to convert.
+- Like when2meet without passwords, anyone with the link can edit any name's row. Events and rows cannot be deleted from the site.
+- Firestore's free plan allows 50,000 reads and 20,000 writes per day, plenty for a lab or class.
+- Event links look like `https://pupubear007.github.io/pu_meet/#/e/<id>`, where the id is a random 10-character string.
+- After an update is pushed, GitHub Pages takes about a minute; press Cmd + Shift + R to reload without the cached copy.
+
+## Troubleshooting
+
+Open the browser console (**View → Developer → JavaScript Console**) and look for red errors:
+
+| Error | Meaning |
+|---|---|
+| `API key not valid` | `apiKey` in `firebase-config.js` has a typo |
+| `Missing or insufficient permissions` | Firestore rules not published (or changed) |
+| `database ... does not exist` | Firestore database has not been created |
